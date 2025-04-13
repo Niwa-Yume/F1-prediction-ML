@@ -32,7 +32,6 @@ def charger_données_weekend(année, course):
 
     return sessions
 
-
 def extraire_caractéristiques_qualification(session_q):
     """Extraire les données de performance en qualification"""
     try:
@@ -260,8 +259,14 @@ def entraîner_modèle_prédiction(données_historiques):
     # Division train/test
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Modèle de classification (prédire le vainqueur)
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    # Modèle de classification avec équilibrage des classes
+    model = RandomForestClassifier(
+        n_estimators=100,
+        random_state=42,
+        class_weight='balanced',  # Compenser le déséquilibre des classes
+        max_depth=5,              # Limiter la profondeur pour éviter le surapprentissage
+        min_samples_leaf=5        # Exiger plus d'échantillons par feuille
+    )
     model.fit(X_train, y_train)
 
     # Évaluation
@@ -269,17 +274,7 @@ def entraîner_modèle_prédiction(données_historiques):
     accuracy = accuracy_score(y_test, y_pred)
     print(f"Précision du modèle: {accuracy:.2f}")
 
-    # Importance des caractéristiques
-    feature_importance = pd.DataFrame({
-        'feature': X.columns,
-        'importance': model.feature_importances_
-    }).sort_values('importance', ascending=False)
-
-    print("Caractéristiques les plus importantes:")
-    print(feature_importance.head(10))
-
     return model
-
 
 def prédire_vainqueur(model, données_course):
     """Prédire le vainqueur d'une course"""
@@ -289,7 +284,7 @@ def prédire_vainqueur(model, données_course):
     # Calculer les probabilités de victoire
     probas = model.predict_proba(X_pred)
 
-    # Vérifier la taille de la sortie pour éviter l'erreur d'index
+    # Vérifier la taille de la sortie
     if probas.shape[1] > 1:
         win_probas = probas[:, 1]  # Classe 1 (vainqueur)
     else:
@@ -298,6 +293,20 @@ def prédire_vainqueur(model, données_course):
     # Ajouter les probabilités au DataFrame
     résultats = données_course[['Driver', 'TeamName']].copy()
     résultats['WinProbability'] = win_probas
+
+    # Normaliser les probabilités pour qu'elles soient plus différenciées
+    # Si toutes les probabilités sont identiques, générer des valeurs aléatoires pondérées
+    if len(set(win_probas)) <= 1:
+        print("Avertissement : Probabilités identiques détectées. Utilisation d'un modèle alternatif.")
+        # Utiliser la position de qualification comme facteur de probabilité inverse
+        grid_pos = données_course['GridPosition'].values
+        # Convertir en probabilités (1/position)
+        alt_probas = 1 / grid_pos
+        # Normaliser pour avoir une somme = 1
+        résultats['WinProbability'] = alt_probas / alt_probas.sum()
+    else:
+        # Normaliser pour avoir une somme = 1
+        résultats['WinProbability'] = résultats['WinProbability'] / résultats['WinProbability'].sum()
 
     # Trier par probabilité de victoire
     résultats = résultats.sort_values('WinProbability', ascending=False)
