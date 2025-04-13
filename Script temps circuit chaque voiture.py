@@ -1,11 +1,11 @@
 # ========== 1. Imports & Configuration ==========
+import os
+
 import fastf1
 import pandas as pd
-import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
-import os
+from sklearn.model_selection import train_test_split
 
 # Créer un dossier 'cache' dans le répertoire du projet
 cache_dir = os.path.join(os.path.dirname(__file__), 'cache')
@@ -14,10 +14,7 @@ os.makedirs(cache_dir, exist_ok=True)
 # Activer le cache avec le bon chemin
 fastf1.Cache.enable_cache(cache_dir)
 
-
-
 # ========== 2. Charger une course ==========
-
 
 
 # Charger une course (exemple: Grand Prix de Monaco 2023)
@@ -28,12 +25,7 @@ grand_prix.load()
 
 print(f"Données chargées pour {race} {year}")
 
-
-
-
 # ========== 3. Extraire des données utiles par pilote ==========
-
-
 
 
 # Extraire les données de lap timing
@@ -47,13 +39,7 @@ print(f"Pilotes en course: {', '.join(drivers)}")
 laps = laps.loc[:, ['Driver', 'Team', 'LapTime', 'LapNumber', 'Compound', 'TyreLife', 'TrackStatus']]
 laps = laps.dropna(subset=['LapTime'])  # Supprimer les tours sans temps
 
-
-
-
-
 # ========== 4. Préparation des données pour le modèle ==========
-
-
 
 
 # Convertir les temps au format numérique (secondes)
@@ -73,14 +59,7 @@ y = data['LapTimeSeconds']
 # Division train/test
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-
-
-
-
-
 # ========== 5. Entraînement du modèle ==========
-
-
 
 
 model = RandomForestRegressor(n_estimators=100, random_state=42)
@@ -99,4 +78,3 @@ feature_importance = pd.DataFrame({
 
 print("Les 10 caractéristiques les plus importantes:")
 print(feature_importance)
-
